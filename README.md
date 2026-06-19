@@ -194,4 +194,4 @@ repository.
 
 ## License
 
-Add a license file before making the repository public.
+License pending. Add a license file before formal distribution or announcement.
