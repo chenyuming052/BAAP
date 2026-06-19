@@ -16,15 +16,15 @@ from nltk.tokenize import RegexpTokenizer
 from math import ceil, floor
 from typing import Callable, List, Optional, Union
 from scipy import ndimage
-from medst.constants import *
+from baap.constants import *
 
-from medst.datasets.classification_dataset import (CheXpertImageDataset,
+from baap.datasets.classification_dataset import (CheXpertImageDataset,
                                                   COVIDXImageDataset,
                                                   RSNAImageDataset)
-from medst.datasets.data_module import DataModule
-from medst.datasets.transforms import DataTransforms, Moco2Transform
-from medst.models.medst.medst_module import MedST
-from medst.models.ssl_finetuner import SSLFineTuner
+from baap.datasets.data_module import DataModule
+from baap.datasets.transforms import DataTransforms, Moco2Transform
+from baap.models.medst.medst_module import MedST
+from baap.models.ssl_finetuner import SSLFineTuner
 from pytorch_lightning import LightningModule
 from transformers import BertTokenizer
 import torch.nn.functional as F
@@ -33,8 +33,8 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
 from sklearn.svm import SVC
-from medst.datasets.transforms import DataTransforms
-from medst.datasets.utils import get_imgs, read_from_dicom
+from baap.datasets.transforms import DataTransforms
+from baap.datasets.utils import get_imgs, read_from_dicom
 import tempfile
 from sklearn.model_selection import KFold
 
@@ -231,4 +231,4 @@ def zeroshot(path, seed):
 
 if __name__ == "__main__":
     # it may take a while
-    zeroshot('path/to/medst.ckpt', 42)
+    zeroshot('path/to/baap.ckpt', 42)

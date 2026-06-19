@@ -6,7 +6,7 @@ import pandas as pd
 import argparse
 import skimage
 from tqdm import tqdm
-from medst.constants import *
+from baap.constants import *
 
 def get_MIMIC_img(subject_id, study_id, dicom):
     # dataset link: https://physionet.org/content/mimic-cxr/2.0.0/

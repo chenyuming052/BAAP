@@ -11,7 +11,7 @@ Each sample provides:
 Data source: temporal_finetuning_dataset_clean/ produced by decontaminate_imagenome.py
 
 Usage:
-    from medst.datasets.anatomy_pretrain_dataset import (
+    from baap.datasets.anatomy_pretrain_dataset import (
         AnatomyPretrainDataset, anatomy_pretrain_collate_fn
     )
     dataset = AnatomyPretrainDataset("train", data_dir="path/to/clean")
@@ -58,7 +58,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 # ---------------------------------------------------------------------------
-# Image loading (matching MedST preprocessing)
+# Image loading (matching BAAP preprocessing)
 # ---------------------------------------------------------------------------
 def _resize_img(img, scale):
     """Aspect-preserving resize + zero-padding to (scale, scale)."""
@@ -107,10 +107,10 @@ def _remap_path(path: str, new_base: Optional[str]) -> str:
 # Bbox coordinate conversion
 # ---------------------------------------------------------------------------
 def _bbox_224_to_256crop(bbox_224: list, crop_size: int = 224, resize_scale: int = 256) -> list:
-    """Convert bbox from ImaGenome resize-224+pad space to MedST resize-256+pad+CenterCrop(224) space.
+    """Convert bbox from ImaGenome resize-224+pad space to BAAP resize-256+pad+CenterCrop(224) space.
 
     Chest ImaGenome computes bbox_224 via aspect-preserving resize to 224 + zero-pad.
-    MedST loads images via resize to 256 + zero-pad + CenterCrop(224).
+    BAAP loads images via resize to 256 + zero-pad + CenterCrop(224).
     The conversion is: coord_crop = coord_224 * (256/224) - 16, clamped to [0, 224].
     """
     scale = resize_scale / crop_size  # 256 / 224 ≈ 1.143
@@ -238,7 +238,7 @@ class AnatomyPretrainDataset(data.Dataset):
                 return_tensors="pt",
             )
 
-            # Convert bbox from ImaGenome 224-space to MedST 256+crop space
+            # Convert bbox from ImaGenome 224-space to BAAP 256+crop space
             prior_bbox_crop = _bbox_224_to_256crop(c["prior_bbox_224"])
             current_bbox_crop = _bbox_224_to_256crop(c["current_bbox_224"])
 

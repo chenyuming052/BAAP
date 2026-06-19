@@ -7,7 +7,7 @@ import torch
 from torch import nn
 from torch.nn import CrossEntropyLoss, MSELoss
 from einops import rearrange
-from medst.models.backbones.transformer_model import TransModel2d, TransConfig
+from baap.models.backbones.transformer_model import TransModel2d, TransConfig
 import math
 
 

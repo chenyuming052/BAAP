@@ -3,8 +3,8 @@ import os
 import numpy as np
 import pandas as pd
 import torch
-from medst.constants import *
-from medst.datasets.utils import get_imgs, read_from_dicom
+from baap.constants import *
+from baap.datasets.utils import get_imgs, read_from_dicom
 from torch.utils.data import Dataset
 
 np.random.seed(42)

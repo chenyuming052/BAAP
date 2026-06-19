@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from medst.utils.cosine_annealing_warmup import CosineAnnealingWarmupRestarts
+from baap.utils.cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 from dateutil import tz
 from einops import rearrange
 from pytorch_lightning import LightningModule, Trainer, seed_everything
@@ -14,15 +14,15 @@ from pytorch_lightning.callbacks import (Callback, EarlyStopping,
                                          LearningRateMonitor, ModelCheckpoint)
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin
-from medst.datasets.data_module import DataModule
-from medst.datasets.pretrain_dataset import (MultimodalPretrainingDataset,
+from baap.datasets.data_module import DataModule
+from baap.datasets.pretrain_dataset import (MultimodalPretrainingDataset,
                                             multimodal_collate_fn)
-from medst.datasets.transforms import DataTransforms
-from medst.models.backbones.encoder import BertEncoder, ImageEncoder
-from medst.models.backbones.vits import Mlp
+from baap.datasets.transforms import DataTransforms
+from baap.models.backbones.encoder import BertEncoder, ImageEncoder
+from baap.models.backbones.vits import Mlp
 
 from torch import distributed as dist
-from medst.models.medst.temporal_alignment import compute_deterministic_alignment_loss
+from baap.models.medst.temporal_alignment import compute_deterministic_alignment_loss
 from timm.models.layers import trunc_normal_, DropPath
 
 

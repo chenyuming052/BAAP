@@ -1,6 +1,6 @@
 """
 BAAP Anatomy-Temporal Fine-tuner Evaluation Script
-Location: medst/experiments/code/anatomy_temporal_evaluator.py
+Location: baap/experiments/code/anatomy_temporal_evaluator.py
 
 Evaluates the finetuned AnatomyTemporalFineTuner model on:
   1. Chest ImaGenome test set — native per-anatomy evaluation
@@ -10,7 +10,7 @@ Evaluates the finetuned AnatomyTemporalFineTuner model on:
 
 Usage:
     export PYTHONPATH=$PWD:${PYTHONPATH:-}
-    python medst/experiments/code/anatomy_temporal_evaluator.py \
+    python baap/experiments/code/anatomy_temporal_evaluator.py \
         --ckpt_path /path/to/finetuned.ckpt \
         --eval_mode mscxrt \
         --data_dir /path/to/chest-imagenome/temporal_finetuning_dataset \
@@ -44,8 +44,8 @@ from pytorch_lightning import Trainer, seed_everything
 # ============================================================================
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))  # experiments/code/
 EXPERIMENTS_DIR = os.path.dirname(CURRENT_DIR)             # experiments/
-MEDST_DIR = os.path.dirname(EXPERIMENTS_DIR)               # medst/
-PROJECT_ROOT = os.path.dirname(MEDST_DIR)                  # MedST/
+BAAP_DIR = os.path.dirname(EXPERIMENTS_DIR)               # baap/
+PROJECT_ROOT = os.path.dirname(BAAP_DIR)                  # BAAP/
 DEFAULT_DATA_ROOT = os.environ.get(
     "BAAP_DATA_DIR", os.path.join(PROJECT_ROOT, "data")
 )
@@ -75,13 +75,13 @@ from anatomy_temporal_finetuner import (
 
 # Support loading Stage 2 anatomy pre-training checkpoints
 try:
-    from medst.models.medst.medst_module_anatomy import MedSTAnatomy
+    from baap.models.medst.medst_module_anatomy import MedSTAnatomy
 except ImportError:
     MedSTAnatomy = None
 
 # Support loading base MedST (Stage 1) checkpoints
 try:
-    from medst.models.medst.medst_module import MedST as MedSTBase
+    from baap.models.medst.medst_module import MedST as MedSTBase
 except ImportError:
     MedSTBase = None
 
@@ -418,7 +418,7 @@ def eval_mscxrt_svm(
 
     img_df = pd.read_csv(mscxrt_csv)
 
-    # Validation transform matching MedST eval pipeline
+    # Validation transform matching BAAP eval pipeline
     val_transform = transforms.Compose([
         transforms.CenterCrop(IMG_SIZE),
         transforms.ToTensor(),
@@ -725,7 +725,7 @@ def extract_anatomy_bboxes(scene_graph: Dict, coord_mode: str = "crop224") -> Di
     """Extract anatomy name → bbox coords from a scene graph.
 
     Scene graph bboxes are in ImaGenome 224-space.  By default, we convert
-    them to the MedST resize-256 + CenterCrop(224) coordinate space via
+    them to the BAAP resize-256 + CenterCrop(224) coordinate space via
     ``_bbox_224_to_256crop`` so that ROI pooling is consistent with training.
     Use ``coord_mode="raw224"`` to reproduce older paper-protocol ROI
     evaluation that used the scene graph coordinates directly.
@@ -1580,7 +1580,7 @@ def eval_gold_temporal(
                 except (ValueError, SyntaxError):
                     continue
 
-                # Convert from ImaGenome 224-space to MedST 256-crop space
+                # Convert from ImaGenome 224-space to BAAP 256-crop space
                 bbox_cur = _bbox_224_to_256crop(bbox_cur)
                 bbox_pri = _bbox_224_to_256crop(bbox_pri)
 

@@ -4,7 +4,7 @@ Gold Dataset evaluation using CLS global embedding + SVM
 
 Usage:
     export PYTHONPATH=$PWD:${PYTHONPATH:-}
-    python -m medst.experiments.code.gold_cls_svm_eval \
+    python -m baap.experiments.code.gold_cls_svm_eval \
         --ckpt_path /path/to/pretrained_encoder.ckpt
 """
 
@@ -22,9 +22,9 @@ from sklearn.model_selection import cross_val_score, cross_val_predict, GroupKFo
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_recall_fscore_support
 from tqdm import tqdm
 
-from medst.models.medst.medst_module import MedST
-from medst.datasets.transforms import DataTransforms
-from medst.datasets.utils import get_imgs
+from baap.models.medst.medst_module import MedST
+from baap.datasets.transforms import DataTransforms
+from baap.datasets.utils import get_imgs
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
 DEFAULT_DATA_ROOT = os.environ.get("BAAP_DATA_DIR", os.path.join(PROJECT_ROOT, "data"))
@@ -82,7 +82,7 @@ def main():
                             "mimic-cxr-jpg-2.1.0",
                             "mimic-cxr-2.0.0-metadata.csv",
                         ))
-    parser.add_argument("--output_dir", type=str, default="medst/experiments/results/final_evl_results/base_medst_gold_cls_svm")
+    parser.add_argument("--output_dir", type=str, default="baap/experiments/results/final_evl_results/base_medst_gold_cls_svm")
     parser.add_argument("--svm_seeds", type=int, nargs="+", default=[42, 100, 666])
     args = parser.parse_args()
 

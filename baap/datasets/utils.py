@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import pydicom
 from PIL import Image
-from medst.constants import *
+from baap.constants import *
 
 
 def read_from_dicom(img_path, imsize=None, transform=None):

@@ -1,6 +1,6 @@
 """
 BAAP Anatomy-aware Temporal Fine-tuning
-Location: medst/experiments/code/anatomy_temporal_finetuner.py
+Location: baap/experiments/code/anatomy_temporal_finetuner.py
 
 Task: Given a pair of CXR images (prior, current) with per-anatomy bounding boxes,
 predict the temporal change label (improved / no_change / worsened) for each
@@ -20,7 +20,7 @@ Data format (from prepare_anatomy_temporal_dataset.py):
 
 Usage:
     export PYTHONPATH=$PWD:${PYTHONPATH:-}
-    python medst/experiments/code/anatomy_temporal_finetuner.py \
+    python baap/experiments/code/anatomy_temporal_finetuner.py \
         --pretrained_ckpt /path/to/pretrained_encoder.ckpt \
         --data_dir /path/to/chest-imagenome/temporal_finetuning_dataset \
         --max_epochs 30 \
@@ -67,8 +67,8 @@ from torch.optim.lr_scheduler import LambdaLR
 # ============================================================================
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))  # experiments/code/
 EXPERIMENTS_DIR = os.path.dirname(CURRENT_DIR)             # experiments/
-MEDST_DIR = os.path.dirname(EXPERIMENTS_DIR)               # medst/
-PROJECT_ROOT = os.path.dirname(MEDST_DIR)                  # MedST/
+BAAP_DIR = os.path.dirname(EXPERIMENTS_DIR)               # baap/
+PROJECT_ROOT = os.path.dirname(BAAP_DIR)                  # BAAP/
 
 RESULTS_DIR = os.path.join(EXPERIMENTS_DIR, "results")
 # Handle symlink: remove broken symlinks, skip makedirs for valid symlinks (Python 3.9 compat)
@@ -81,9 +81,9 @@ if not os.path.islink(RESULTS_DIR) and not os.path.isdir(RESULTS_DIR):
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from medst.models.backbones.encoder import ImageEncoder
-from medst.models.medst.anatomy_modules import CrossImageRegionalDiffAttention
-print("Successfully imported MedST ImageEncoder")
+from baap.models.backbones.encoder import ImageEncoder
+from baap.models.medst.anatomy_modules import CrossImageRegionalDiffAttention
+print("Successfully imported BAAP ImageEncoder")
 
 
 # ============================================================================
@@ -114,12 +114,12 @@ NUM_ANATOMIES = len(ANATOMY_LIST) + 1  # 39 (including unknown)
 
 
 # ============================================================================
-# Image loading utilities (matching MedST preprocessing)
+# Image loading utilities (matching BAAP preprocessing)
 # ============================================================================
 def resize_img(img, scale):
     """Aspect-preserving resize + zero-padding to (scale, scale).
 
-    Copied from medst/datasets/utils.py to avoid import issues.
+    Copied from baap/datasets/utils.py to avoid import issues.
     """
     size = img.shape
     max_dim = max(size)
@@ -158,10 +158,10 @@ def resize_img(img, scale):
 
 
 def _bbox_224_to_256crop(bbox_224: list, crop_size: int = 224, resize_scale: int = 256) -> list:
-    """Convert bbox from ImaGenome resize-224+pad space to MedST resize-256+pad+CenterCrop(224) space.
+    """Convert bbox from ImaGenome resize-224+pad space to BAAP resize-256+pad+CenterCrop(224) space.
 
     Chest ImaGenome computes bbox_224 via aspect-preserving resize to 224 + zero-pad.
-    MedST loads images via resize to 256 + zero-pad + CenterCrop(224).
+    BAAP loads images via resize to 256 + zero-pad + CenterCrop(224).
     The conversion is: coord_crop = coord_224 * (256/224) - 16, clamped to [0, 224].
     """
     scale = resize_scale / crop_size  # 256 / 224 ≈ 1.143
@@ -170,7 +170,7 @@ def _bbox_224_to_256crop(bbox_224: list, crop_size: int = 224, resize_scale: int
 
 
 def load_cxr_image(img_path, scale=256):
-    """Load CXR image following MedST pipeline.
+    """Load CXR image following BAAP pipeline.
 
     Pipeline: grayscale cv2 -> resize_img(256) -> RGB PIL Image (256x256).
     The subsequent transform applies CenterCrop(224) to produce the final 224x224
@@ -545,7 +545,7 @@ class ROIProjection(nn.Module):
 # Main Fine-tuning Model
 # ============================================================================
 class AnatomyTemporalFineTuner(LightningModule):
-    """MedST anatomy-aware temporal fine-tuning model.
+    """BAAP anatomy-aware temporal fine-tuning model.
 
     Given a prior-current CXR pair and per-anatomy bounding boxes, predicts
     3-way temporal change (improved / no_change / worsened) for each anatomy.
@@ -1195,7 +1195,7 @@ class AnatomyTemporalDataset(Dataset):
     def __getitem__(self, idx: int) -> Dict:
         item = self.data[idx]
 
-        # Load images (256x256 PIL RGB, matching MedST preprocessing)
+        # Load images (256x256 PIL RGB, matching BAAP preprocessing)
         prior_path = item["prior_image_path"]
         current_path = item["current_image_path"]
         if self.image_root_remap:
@@ -1521,7 +1521,7 @@ def _get_cosine_with_warmup_lambda(warmup_steps, total_steps, eta_min_ratio=1e-8
 # Main
 # ============================================================================
 def main():
-    parser = ArgumentParser(description="MedST Anatomy-Aware Temporal Fine-tuning")
+    parser = ArgumentParser(description="BAAP Anatomy-Aware Temporal Fine-tuning")
     parser = Trainer.add_argparse_args(parser)
 
     # Data
@@ -1609,7 +1609,7 @@ def main():
     parser.add_argument("--experiment_name", type=str, default="anatomy_temporal",
                         help="Experiment subdirectory name (default: anatomy_temporal)")
     parser.add_argument("--results_dir", type=str, default="",
-                        help="Root directory for saving results (default: MedST/medst/experiments/results)")
+                        help="Root directory for saving results (default: BAAP/baap/experiments/results)")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument("--disable_early_stopping", action="store_true")
@@ -1721,7 +1721,7 @@ def main():
     # ---- Logger ----
     if args.use_wandb:
         logger = WandbLogger(
-            project="MedST-AnatomyTemporal", name=os.path.basename(exp_dir), save_dir=exp_dir
+            project="BAAP-AnatomyTemporal", name=os.path.basename(exp_dir), save_dir=exp_dir
         )
     else:
         logger = TensorBoardLogger(save_dir=exp_dir, name="logs")

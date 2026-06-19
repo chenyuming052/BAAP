@@ -9,8 +9,9 @@ the paper experiments.
 
 ## Repository
 
-The Python package is kept as `medst` for compatibility with the original
-codebase and checkpoints, while the released repository is named `BAAP`.
+The Python package is named `baap`. Legacy `MedST` names are kept only where
+the code refers to the upstream MedST model/backbone for checkpoint
+compatibility and attribution.
 
 Public release scope:
 
@@ -104,7 +105,7 @@ bounding boxes, or the JSONL files.
 ### Full Fine-Tuning
 
 ```bash
-python -m medst.experiments.code.anatomy_temporal_finetuner \
+python -m baap.experiments.code.anatomy_temporal_finetuner \
   --data_dir "$BAAP_DATA_DIR/chest-imagenome-dataset-1.0.0/silver_dataset/temporal_finetuning_dataset" \
   --pretrained_ckpt /path/to/pretrained_encoder.ckpt \
   --results_dir ./outputs \
@@ -125,7 +126,7 @@ root than your local MIMIC-CXR-JPG directory.
 ### MS-CXR-T ROI and SVM CV-10
 
 ```bash
-python -m medst.experiments.code.anatomy_temporal_evaluator \
+python -m baap.experiments.code.anatomy_temporal_evaluator \
   --ckpt_path /path/to/checkpoint.ckpt \
   --model_type finetuner \
   --eval_mode mscxrt_roi \
@@ -150,7 +151,7 @@ direct ROI accuracy, direct macro-F1, CV-5, and per-disease metrics.
 ### Gold Temporal Evaluation
 
 ```bash
-python -m medst.experiments.code.anatomy_temporal_evaluator \
+python -m baap.experiments.code.anatomy_temporal_evaluator \
   --ckpt_path /path/to/checkpoint.ckpt \
   --model_type finetuner \
   --eval_mode gold_temporal \
@@ -166,7 +167,7 @@ Use `--fast_dev_run True` to verify that the training pipeline can load data,
 run one train/validation/test batch, and save outputs:
 
 ```bash
-python -m medst.experiments.code.anatomy_temporal_finetuner \
+python -m baap.experiments.code.anatomy_temporal_finetuner \
   --data_dir "$BAAP_DATA_DIR/chest-imagenome-dataset-1.0.0/silver_dataset/temporal_finetuning_dataset" \
   --pretrained_ckpt /path/to/pretrained_encoder.ckpt \
   --results_dir /tmp/baap_smoke \

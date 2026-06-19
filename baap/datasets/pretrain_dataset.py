@@ -9,8 +9,8 @@ import pandas as pd
 import torch
 import torch.utils.data as data
 from nltk.tokenize import RegexpTokenizer
-from medst.constants import *
-from medst.datasets.utils import get_imgs
+from baap.constants import *
+from baap.datasets.utils import get_imgs
 from tqdm import tqdm
 from transformers import BertTokenizer
 from random import shuffle
@@ -333,7 +333,7 @@ def multimodal_collate_fn(batch):
 
 
 if __name__ == "__main__":
-    from medst.datasets.transforms import DataTransforms
+    from baap.datasets.transforms import DataTransforms
     transform = DataTransforms(is_train=True)
     dataset = MultimodalPretrainingDataset(split="valid", transform=transform)
     data = dataset.temporal

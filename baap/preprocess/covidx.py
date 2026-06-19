@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from medst.constants import *
+from baap.constants import *
 
 
 np.random.seed(0)

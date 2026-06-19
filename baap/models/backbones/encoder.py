@@ -3,9 +3,9 @@ import os
 import torch
 import torch.nn as nn
 from einops import rearrange
-from medst.models.backbones import cnn_backbones
-from medst.models.backbones.med import BertModel
-from medst.models.backbones.vits import create_vit
+from baap.models.backbones import cnn_backbones
+from baap.models.backbones.med import BertModel
+from baap.models.backbones.vits import create_vit
 from transformers import AutoTokenizer, BertConfig, BertTokenizer, logging
 
 logging.set_verbosity_error()
@@ -478,8 +478,8 @@ class BertEncoder(nn.Module):
 
 
 if __name__ == "__main__":
-    # from medst.datasets.pretrain_dataset import MultimodalPretrainingDataset
-    # from medst.datasets.transforms import DataTransforms
+    # from baap.datasets.pretrain_dataset import MultimodalPretrainingDataset
+    # from baap.datasets.transforms import DataTransforms
     # transform = DataTransforms(is_train=True)
     # dataset = MultimodalPretrainingDataset(split="train", transform=transform)
 

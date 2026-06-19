@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from tqdm import tqdm
-from medst.constants import MIMIC_CXR_DATA_DIR
+from baap.constants import MIMIC_CXR_DATA_DIR
 
 reports_path = MIMIC_CXR_DATA_DIR / "files"
 output_path = MIMIC_CXR_DATA_DIR

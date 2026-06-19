@@ -44,7 +44,7 @@ class ICGPretrainingDataset(data.Dataset):
 
 
 if __name__ == "__main__":
-    from medst.datasets.transforms import DataTransforms
+    from baap.datasets.transforms import DataTransforms
     transform = DataTransforms(is_train=True)
     dataset = ICGPretrainingDataset(split="valid", transform=transform)
 

@@ -2,9 +2,9 @@ import sys
 import numpy as np
 import re
 import pandas as pd
-from medst.constants import *
+from baap.constants import *
 from nltk.tokenize import RegexpTokenizer
-from medst.preprocess.utils import extract_mimic_text
+from baap.preprocess.utils import extract_mimic_text
 from pandas import Series, DataFrame
 from tqdm import tqdm
 import json

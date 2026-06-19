@@ -7,7 +7,7 @@ and produces a JSONL file compatible with the AnatomyPretrainDataset format.
 Also applies MS-CXR-T decontamination (removes overlapping subjects).
 
 Usage:
-    python medst/preprocess/prepare_icg_cxr.py \
+    python baap/preprocess/prepare_icg_cxr.py \
         --icg_dir data/icg-cxr-full/mimic_cxr \
         --ms_cxr_t_csv data/ms-cxr-t/MS_CXR_T_temporal_image_classification_v1.0.0.csv \
         --mimic_split_csv data/mimic-cxr-jpg-2.1.0/mimic-cxr-2.0.0-split.csv \

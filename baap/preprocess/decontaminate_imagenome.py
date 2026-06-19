@@ -13,7 +13,7 @@ Solution:
 5. Verify zero overlap with MS-CXR-T
 
 Usage:
-    python medst/preprocess/decontaminate_imagenome.py \
+    python baap/preprocess/decontaminate_imagenome.py \
         --ms_cxr_t_csv data/ms-cxr-t/MS_CXR_T_temporal_image_classification_v1.0.0.csv \
         --imagenome_dir data/chest-imagenome-dataset-1.0.0/temporal_finetuning_dataset \
         --mimic_split_csv data/mimic-cxr-jpg-2.1.0/mimic-cxr-2.0.0-split.csv \

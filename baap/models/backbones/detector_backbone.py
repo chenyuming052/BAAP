@@ -1,7 +1,7 @@
 import ipdb
 import torch
 import torch.nn as nn
-from medst.models.backbones import cnn_backbones
+from baap.models.backbones import cnn_backbones
 from torch import nn
 
 

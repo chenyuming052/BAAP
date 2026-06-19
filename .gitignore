@@ -85,20 +85,20 @@ Thumbs.db
 ############################
 # 🧬 Project-specific ignores
 ############################
-medst/experiments/.devcontainer/
-medst/emilyalsentzer/Bio_ClinicalBERT/*.bin
-medst/emilyalsentzer/Bio_ClinicalBERT/*.h5
-medst/emilyalsentzer/Bio_ClinicalBERT/*.msgpack
-medst/emilyalsentzer/Bio_ClinicalBERT/model.ckpt*
-medst/emilyalsentzer/Bio_ClinicalBERT/
+baap/experiments/.devcontainer/
+baap/emilyalsentzer/Bio_ClinicalBERT/*.bin
+baap/emilyalsentzer/Bio_ClinicalBERT/*.h5
+baap/emilyalsentzer/Bio_ClinicalBERT/*.msgpack
+baap/emilyalsentzer/Bio_ClinicalBERT/model.ckpt*
+baap/emilyalsentzer/Bio_ClinicalBERT/
 papers/
 .claude/
 
 presentation/
 manuscript/
-medst/experiments/comparision/*
-medst/experiments/run/
-medst/experiments/results/
+baap/experiments/comparision/*
+baap/experiments/run/
+baap/experiments/results/
 rebuttal/
 rebuttal-*.txt
 
