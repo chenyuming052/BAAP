@@ -1,0 +1,106 @@
+############################
+# 🧠 Python cache & bytecode
+############################
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.cpython-*
+*$py.class
+
+############################
+# 🐍 Python environment
+############################
+.env
+.venv
+venv/
+ENV/
+env/
+.python-version
+
+############################
+# 📦 Package / build artifacts
+############################
+build/
+dist/
+*.egg-info/
+.eggs/
+
+############################
+# 🧪 Experiment & training outputs
+############################
+runs/
+wandb/
+tensorboard/
+logs/
+outputs/
+results/
+checkpoints/
+lightning_logs/
+
+############################
+# 🧠 Model weights & checkpoints
+############################
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.onnx
+*.engine
+*.msgpack
+
+############################
+# 🗂️ Medical / large data files
+############################
+data/
+**/data/
+*.nii
+*.nii.gz
+*.dcm
+*.mha
+*.h5
+*.hdf5
+*.npz
+*.npy
+
+############################
+# 📊 Notebooks & temp files
+############################
+.ipynb_checkpoints/
+*.tmp
+*.swp
+*.swo
+*.log
+
+############################
+# 🧑‍💻 IDE / OS specific
+############################
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+############################
+# 🧬 Project-specific ignores
+############################
+medst/experiments/.devcontainer/
+medst/emilyalsentzer/Bio_ClinicalBERT/*.bin
+medst/emilyalsentzer/Bio_ClinicalBERT/*.h5
+medst/emilyalsentzer/Bio_ClinicalBERT/*.msgpack
+medst/emilyalsentzer/Bio_ClinicalBERT/model.ckpt*
+medst/emilyalsentzer/Bio_ClinicalBERT/
+papers/
+.claude/
+
+presentation/
+manuscript/
+medst/experiments/comparision/*
+medst/experiments/run/
+medst/experiments/results/
+rebuttal/
+rebuttal-*.txt
+
+
+deploy/
