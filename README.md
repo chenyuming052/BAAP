@@ -7,28 +7,6 @@ image pairs with anatomy-aware regional features. This repository contains the
 public training, preprocessing, and evaluation code used for the paper
 experiments.
 
-## Repository
-
-The Python package is named `baap`. Legacy `MedST` names are kept only where
-the code refers to the upstream MedST model/backbone for checkpoint
-compatibility and attribution.
-
-Public release scope:
-
-- anatomy-aware temporal fine-tuning
-- MS-CXR-T ROI evaluation and SVM 10-fold CV evaluation
-- Chest ImaGenome temporal data utilities
-- downstream dataset preprocessing utilities
-- BAAP v1 checkpoint download helper
-
-Not included:
-
-- local batch launch scripts
-- private machine paths
-- generated results and checkpoints
-- draft documents
-- large datasets
-
 ## Model Checkpoint
 
 The BAAP v1 paper-best checkpoint is distributed through GitHub Releases, not
@@ -84,13 +62,23 @@ export PYTHONPATH="$PWD:${PYTHONPATH:-}"
 
 ## Data
 
-Download the required public datasets from their official sources:
+Download the required datasets from their official PhysioNet pages:
 
-- MIMIC-CXR-JPG
-- Chest ImaGenome
-- MS-CXR-T
-- RSNA Pneumonia Detection Challenge
-- COVIDx CXR
+- [MIMIC-CXR-JPG v2.1.0](https://physionet.org/content/mimic-cxr-jpg/2.1.0/)
+- [Chest ImaGenome Dataset v1.0.0](https://physionet.org/content/chest-imagenome/1.0.0/)
+- [MS-CXR-T v1.0.0](https://physionet.org/content/ms-cxr-t/1.0.0/)
+
+MIMIC-CXR-JPG and Chest ImaGenome require PhysioNet credentialed access. After
+your account has access, download the archives from the dataset pages above or
+use PhysioNet's authenticated file URLs:
+
+```bash
+wget -r -N -c -np --user "$PHYSIONET_USER" --ask-password \
+  https://physionet.org/files/mimic-cxr-jpg/2.1.0/
+
+wget -r -N -c -np --user "$PHYSIONET_USER" --ask-password \
+  https://physionet.org/files/chest-imagenome/1.0.0/
+```
 
 By default, BAAP resolves data under `./data`. To use another location:
 
@@ -136,7 +124,7 @@ bounding boxes, or the JSONL files.
 
 ## Training
 
-### Full Fine-Tuning
+### Post-training
 
 ```bash
 python -m baap.experiments.code.anatomy_temporal_finetuner \
@@ -155,8 +143,6 @@ Use `--image_root_remap OLD:NEW` if the JSONL image paths point to a different
 root than your local MIMIC-CXR-JPG directory.
 
 ## Evaluation
-
-### MS-CXR-T ROI and SVM 10-fold CV
 
 ```bash
 python -m baap.experiments.code.anatomy_temporal_evaluator \
