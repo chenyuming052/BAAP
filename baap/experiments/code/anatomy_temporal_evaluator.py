@@ -506,7 +506,7 @@ def eval_mscxrt_svm(
         return mean_acc
 
     # Multi-seed evaluation (matching temporal_test.py)
-    random_seeds = svm_seeds or [42, 100, 666]
+    random_seeds = svm_seeds or [50, 52, 100]
     all_cv5 = []
     all_cv10 = []
     print(f"  Seeds: {random_seeds}, shuffle_folds: {not no_shuffle_folds}")
@@ -651,7 +651,7 @@ def eval_mscxrt_direct(
     print(f"    Direct avg: {direct_accs['avg']:.2f}%")
 
     # ---- Step 2: SVM on logits (aligned with mscxrt_roi) ----
-    random_seeds = svm_seeds or [42, 100, 666]
+    random_seeds = svm_seeds or [50, 52, 100]
     all_cv5 = []
     all_cv10 = []
     print(f"\n  Running SVM on logits (seeds={random_seeds})...")
@@ -1026,7 +1026,7 @@ def eval_mscxrt_roi(
         return direct_acc, all_preds, all_logits, all_labels
 
     # Run evaluation with multi-seed SVM on aggregated logits
-    random_seeds = svm_seeds or [42, 100, 666]
+    random_seeds = svm_seeds or [50, 52, 100]
     all_cv5 = []
     all_cv10 = []
     direct_accs = {}
@@ -1302,7 +1302,7 @@ def eval_mscxrt_ensemble(
         disease_data[disease] = {"X": X, "y": y}
 
     # Run SVM cross-validation
-    random_seeds = svm_seeds or [42, 100, 666]
+    random_seeds = svm_seeds or [50, 52, 100]
     all_cv5 = []
     all_cv10 = []
     print(f"\n  Running SVM on ensemble features...")
@@ -1653,7 +1653,7 @@ def eval_gold_temporal(
         from sklearn.model_selection import cross_val_score, cross_val_predict, GroupKFold
 
         if svm_seeds is None:
-            svm_seeds = [42, 100, 666]
+            svm_seeds = [50, 52, 100]
 
         X = np.concatenate(all_features, axis=0)  # [N_total, 3*D]
         y = all_labels
@@ -1712,7 +1712,7 @@ def eval_gold_temporal(
         from sklearn.model_selection import cross_val_score as _cv_score, GroupKFold as _GKF
 
         if svm_seeds is None:
-            svm_seeds = [42, 100, 666]
+            svm_seeds = [50, 52, 100]
 
         X_logits = np.concatenate(all_logits, axis=0)  # [N_total, 3]
         y_logits = all_labels
@@ -1891,8 +1891,8 @@ def main():
     parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
-        "--svm_seeds", type=int, nargs="+", default=[42, 100, 666],
-        help="Random seeds for SVM cross-validation (default: 42 100 666)",
+        "--svm_seeds", type=int, nargs="+", default=[50, 52, 100],
+        help="Random seeds for SVM cross-validation (default: 50 52 100)",
     )
     parser.add_argument(
         "--no_shuffle_folds", action="store_true",

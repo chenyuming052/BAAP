@@ -4,8 +4,8 @@ Official code for **BAAP: Bidirectional Anatomy-Aware Progression Perception**.
 
 BAAP learns and evaluates temporal chest X-ray representations from prior-current
 image pairs with anatomy-aware regional features. This repository contains the
-public training, preprocessing, and evaluation code used for
-the paper experiments.
+public training, preprocessing, and evaluation code used for the paper
+experiments.
 
 ## Repository
 
@@ -120,7 +120,6 @@ python -m baap.experiments.code.anatomy_temporal_finetuner \
 Use `--image_root_remap OLD:NEW` if the JSONL image paths point to a different
 root than your local MIMIC-CXR-JPG directory.
 
-
 ## Evaluation
 
 ### MS-CXR-T ROI and SVM CV-10
@@ -136,7 +135,7 @@ python -m baap.experiments.code.anatomy_temporal_evaluator \
   --mimic_metadata_csv "$BAAP_DATA_DIR/mimic-cxr-jpg-2.1.0/mimic-cxr-2.0.0-metadata.csv" \
   --roi_aggregation majority \
   --bbox_coord_mode crop224 \
-  --svm_seeds 42 100 666 \
+  --svm_seeds 50 52 100 \
   --output_dir ./outputs/eval
 ```
 
