@@ -16,7 +16,7 @@ compatibility and attribution.
 Public release scope:
 
 - anatomy-aware temporal fine-tuning
-- MS-CXR-T ROI evaluation and SVM CV-10 evaluation
+- MS-CXR-T ROI evaluation and SVM 10-fold CV evaluation
 - Chest ImaGenome temporal data utilities
 - downstream dataset preprocessing utilities
 - BAAP v1 checkpoint download helper
@@ -156,7 +156,7 @@ root than your local MIMIC-CXR-JPG directory.
 
 ## Evaluation
 
-### MS-CXR-T ROI and SVM CV-10
+### MS-CXR-T ROI and SVM 10-fold CV
 
 ```bash
 python -m baap.experiments.code.anatomy_temporal_evaluator \
@@ -178,8 +178,7 @@ the resize-256 plus center-crop-224 evaluation coordinate frame. Use
 `--bbox_coord_mode raw224` only when reproducing older raw-coordinate protocol
 runs.
 
-The paper main table uses SVM CV-10 evaluation. The evaluator also reports
-direct ROI accuracy, direct macro-F1, CV-5, and per-disease metrics.
+The public evaluator reports SVM 10-fold cross-validation accuracy.
 
 ### Gold Temporal Evaluation
 

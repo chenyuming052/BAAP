@@ -406,14 +406,14 @@ def eval_mscxrt_svm(
     backbone=None,
     svm_feature_mode: str = "original",
 ) -> Dict:
-    """Evaluate using global CLS→global_embed features + SVM (comparable to temporal_test.py).
+    """Evaluate global CLS→global_embed features with SVM 10-fold CV.
 
     Args:
         svm_feature_mode: 'original' = concat(prior, current) [2*D];
                           'enhanced' = concat(prior, current, diff) [3*D].
     """
     print("\n" + "=" * 60)
-    print(f"  Evaluation 2a: MS-CXR-T Global Features + SVM (mode={svm_feature_mode})")
+    print(f"  Evaluation 2a: MS-CXR-T Global Features + SVM 10-fold CV (mode={svm_feature_mode})")
     print("=" * 60)
 
     img_df = pd.read_csv(mscxrt_csv)
@@ -507,7 +507,6 @@ def eval_mscxrt_svm(
 
     # Multi-seed evaluation (matching temporal_test.py)
     random_seeds = svm_seeds or [50, 52, 100]
-    all_cv5 = []
     all_cv10 = []
     print(f"  Seeds: {random_seeds}, shuffle_folds: {not no_shuffle_folds}")
 
@@ -515,39 +514,27 @@ def eval_mscxrt_svm(
         print(f"\n  Seed {seed}:")
         shuffled_df = img_df.sample(frac=1, random_state=seed).reset_index(drop=True)
 
-        for cv in [5, 10]:
-            results = []
-            for disease in DISEASES:
-                acc = run_svm_for_disease(disease, shuffled_df, cv, seed)
-                results.append(acc)
-            avg = np.mean(results)
-            results.append(avg)
-            print(f"    CV-{cv} avg: {avg:.2f}%")
-
-            if cv == 5:
-                all_cv5.append(results)
-            else:
-                all_cv10.append(results)
+        cv = 10
+        results = []
+        for disease in DISEASES:
+            acc = run_svm_for_disease(disease, shuffled_df, cv, seed)
+            results.append(acc)
+        avg = np.mean(results)
+        results.append(avg)
+        print(f"    SVM 10-fold CV avg: {avg:.2f}%")
+        all_cv10.append(results)
 
     # Aggregate across seeds
     disease_keys = DISEASES + ["avg"]
-    avg_cv5 = np.mean(all_cv5, axis=0)
-    std_cv5 = np.std(all_cv5, axis=0)
     avg_cv10 = np.mean(all_cv10, axis=0)
-    std_cv10 = np.std(all_cv10, axis=0)
 
     result = {
-        "cv5": {k: round(float(v), 2) for k, v in zip(disease_keys, avg_cv5)},
-        "cv10": {k: round(float(v), 2) for k, v in zip(disease_keys, avg_cv10)},
-        "cv5_std": {k: round(float(v), 2) for k, v in zip(disease_keys, std_cv5)},
-        "cv10_std": {k: round(float(v), 2) for k, v in zip(disease_keys, std_cv10)},
+        "svm_10fold_cv_accuracy": {
+            k: round(float(v), 2) for k, v in zip(disease_keys, avg_cv10)
+        },
     }
 
-    print(f"\n  Summary (mean ± std across seeds):")
-    print(f"  CV-5:  {result['cv5']}")
-    print(f"         ± {result['cv5_std']}")
-    print(f"  CV-10: {result['cv10']}")
-    print(f"         ± {result['cv10_std']}")
+    print(f"\n  SVM 10-fold CV accuracy: {result['svm_10fold_cv_accuracy']}")
 
     return result
 
@@ -564,15 +551,9 @@ def eval_mscxrt_direct(
     svm_seeds: List[int] = None,
     no_shuffle_folds: bool = False,
 ) -> Dict:
-    """Evaluate an image-level direct classifier on MS-CXR-T pairs.
-
-    For each disease:
-      1. Direct classification: CLS concat → global_classifier → argmax → accuracy
-      2. SVM on logits: 3-dim logits as features → linear SVM CV-5/CV-10
-    Mirrors the two-stage evaluation in eval_mscxrt_roi.
-    """
+    """Evaluate image-level classifier logits using SVM 10-fold CV."""
     print("\n" + "=" * 60)
-    print("  Evaluation: MS-CXR-T Direct Classification (global_classifier)")
+    print("  Evaluation: MS-CXR-T Image-level Logits + SVM 10-fold CV")
     print("=" * 60)
 
     img_df = pd.read_csv(mscxrt_csv)
@@ -602,22 +583,19 @@ def eval_mscxrt_direct(
         cls_feat, _ = backbone(imgs_tensor, view_type="frontal")
         return cls_feat
 
-    # ---- Step 1: Collect direct predictions and logits per disease ----
-    print("\n  Running direct predictions for each disease...")
-    direct_accs = {}
+    # ---- Step 1: Collect logits per disease ----
+    print("\n  Collecting image-level logits for each disease...")
     disease_data = {}  # disease -> {"logits": [N,3], "labels": [N]}
 
     for disease in DISEASES:
         label_col = f"{disease}_progression"
         sub_df = img_df[["dicom_id", "previous_dicom_id", label_col]].dropna(subset=[label_col])
         if len(sub_df) == 0:
-            direct_accs[disease] = 0.0
             disease_data[disease] = {"logits": np.array([]), "labels": np.array([])}
             continue
 
         labels = sub_df[label_col].map(MSCXRT_LABEL_MAP).values
         all_logits = []
-        all_preds = []
 
         for i in range(0, len(sub_df), batch_size):
             batch_df = sub_df.iloc[i : i + batch_size]
@@ -638,69 +616,48 @@ def eval_mscxrt_direct(
                 fused = torch.cat([prior_cls, current_cls], dim=-1)
                 logits = global_cls(fused)
                 all_logits.append(logits.cpu().numpy())
-                all_preds.append(logits.argmax(dim=-1).cpu().numpy())
 
         all_logits = np.concatenate(all_logits)
-        all_preds = np.concatenate(all_preds)
-        acc = (all_preds == labels).mean() * 100
-        direct_accs[disease] = round(float(acc), 2)
         disease_data[disease] = {"logits": all_logits, "labels": labels}
-        print(f"    {disease}: direct_acc={acc:.2f}% (n={len(labels)})")
+        print(f"    {disease}: collected {len(labels)} pairs")
 
-    direct_accs["avg"] = round(float(np.mean([v for k, v in direct_accs.items() if k != "avg"])), 2)
-    print(f"    Direct avg: {direct_accs['avg']:.2f}%")
-
-    # ---- Step 2: SVM on logits (aligned with mscxrt_roi) ----
+    # ---- Step 2: SVM 10-fold CV on logits ----
     random_seeds = svm_seeds or [50, 52, 100]
-    all_cv5 = []
     all_cv10 = []
-    print(f"\n  Running SVM on logits (seeds={random_seeds})...")
+    print(f"\n  Running SVM 10-fold CV on logits (seeds={random_seeds})...")
 
     for seed in random_seeds:
         print(f"\n  Seed {seed}:")
-        for cv in [5, 10]:
-            results = []
-            for disease in DISEASES:
-                data = disease_data[disease]
-                if len(data["labels"]) < cv:
-                    results.append(0.0)
-                    continue
-                classifier = SVC(kernel="linear", random_state=seed)
-                if no_shuffle_folds:
-                    skf = StratifiedKFold(n_splits=cv, shuffle=False)
-                else:
-                    skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=seed)
-                scores = cross_val_score(classifier, data["logits"], data["labels"], cv=skf)
-                acc = round(scores.mean(), 4) * 100
-                results.append(acc)
-                print(f"    {disease} SVM cv={cv}: {acc:.2f}%")
-            avg = np.mean(results)
-            results.append(avg)
-            print(f"    CV-{cv} avg: {avg:.2f}%")
-            if cv == 5:
-                all_cv5.append(results)
+        results = []
+        cv = 10
+        for disease in DISEASES:
+            data = disease_data[disease]
+            if len(data["labels"]) < cv:
+                results.append(0.0)
+                continue
+            classifier = SVC(kernel="linear", random_state=seed)
+            if no_shuffle_folds:
+                skf = StratifiedKFold(n_splits=cv, shuffle=False)
             else:
-                all_cv10.append(results)
+                skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=seed)
+            scores = cross_val_score(classifier, data["logits"], data["labels"], cv=skf)
+            acc = round(scores.mean(), 4) * 100
+            results.append(acc)
+            print(f"    {disease} SVM 10-fold CV: {acc:.2f}%")
+        avg = np.mean(results)
+        results.append(avg)
+        print(f"    SVM 10-fold CV avg: {avg:.2f}%")
+        all_cv10.append(results)
 
     disease_keys = DISEASES + ["avg"]
     result = {
-        "direct_accuracy": direct_accs,
+        "svm_10fold_cv_accuracy": {
+            k: round(float(v), 2)
+            for k, v in zip(disease_keys, np.mean(all_cv10, axis=0))
+        },
     }
 
-    if all_cv5:
-        avg_cv5 = np.mean(all_cv5, axis=0)
-        std_cv5 = np.std(all_cv5, axis=0)
-        avg_cv10 = np.mean(all_cv10, axis=0)
-        std_cv10 = np.std(all_cv10, axis=0)
-        result["cv5"] = {k: round(float(v), 2) for k, v in zip(disease_keys, avg_cv5)}
-        result["cv10"] = {k: round(float(v), 2) for k, v in zip(disease_keys, avg_cv10)}
-        result["cv5_std"] = {k: round(float(v), 2) for k, v in zip(disease_keys, std_cv5)}
-        result["cv10_std"] = {k: round(float(v), 2) for k, v in zip(disease_keys, std_cv10)}
-
-    print(f"\n  Direct accuracy: {direct_accs}")
-    if "cv5" in result:
-        print(f"  SVM CV-5:  {result['cv5']}")
-        print(f"  SVM CV-10: {result['cv10']}")
+    print(f"\n  SVM 10-fold CV accuracy: {result['svm_10fold_cv_accuracy']}")
 
     return result
 
@@ -862,14 +819,7 @@ def eval_mscxrt_roi(
         previous_path: str,
         disease: str,
     ) -> Optional[Dict]:
-        """Run ROI-based predictions for a single image pair for the given disease.
-
-        Returns dict with:
-          - 'per_anatomy': {anat_name: {'pred': int, 'logits': [3]}}
-          - 'aggregated_pred': int (majority vote over relevant anatomies)
-          - 'aggregated_logits': [3] (mean logits over relevant anatomies)
-        or None if scene graphs unavailable.
-        """
+        """Return aggregated ROI logits for one image pair and disease."""
         current_id = get_dicom_id_from_path(current_path)
         previous_id = get_dicom_id_from_path(previous_path)
 
@@ -937,55 +887,25 @@ def eval_mscxrt_roi(
         with torch.no_grad():
             logits = infer_temporal_logits(model, batch, model_type=model_type)  # [N_anat, 3]
 
-        preds = logits.argmax(dim=-1).cpu().numpy()
         logits_np = logits.cpu().numpy()
-
-        per_anatomy = {}
-        for i, anat in enumerate(common):
-            per_anatomy[anat] = {
-                "pred": int(preds[i]),
-                "logits": logits_np[i].tolist(),
-            }
-
-        # Aggregation
-        if roi_aggregation == "softmax":
-            # Softmax-weighted mean: use probability-space averaging
-            probs = F.softmax(torch.tensor(logits_np, dtype=torch.float32), dim=-1).numpy()
-            aggregated_probs = probs.mean(axis=0)
-            aggregated_pred = int(aggregated_probs.argmax())
-        else:
-            # Original majority vote
-            from collections import Counter
-            vote_counts = Counter(preds.tolist())
-            aggregated_pred = vote_counts.most_common(1)[0][0]
 
         # Mean logits for SVM-style evaluation
         aggregated_logits = logits_np.mean(axis=0).tolist()
 
         return {
-            "per_anatomy": per_anatomy,
-            "aggregated_pred": aggregated_pred,
             "aggregated_logits": aggregated_logits,
         }
 
     def evaluate_disease_roi(
         disease: str,
         df: pd.DataFrame,
-        seed: int,
-    ) -> Tuple[Optional[float], np.ndarray, np.ndarray, np.ndarray]:
-        """Run ROI evaluation for one disease.
-
-        Returns:
-          - direct_acc: accuracy from aggregated predictions (majority/softmax)
-          - direct_preds: [N_valid] aggregated predictions used for direct accuracy
-          - X_logits: [N_valid, 3] aggregated logits for SVM
-          - y: [N_valid] labels
-        """
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Collect aggregated ROI logits and labels for one disease."""
         label_col = f"{disease}_progression"
         sub_df = df[["dicom_id", "previous_dicom_id", label_col]].dropna(subset=[label_col])
 
         if len(sub_df) == 0:
-            return None, np.array([]), np.array([]), np.array([])
+            return np.array([]), np.array([])
 
         def classify_value(x):
             if x == "improving":
@@ -995,7 +915,6 @@ def eval_mscxrt_roi(
             else:
                 return 2
 
-        all_preds = []
         all_logits = []
         all_labels = []
         skipped = 0
@@ -1008,124 +927,69 @@ def eval_mscxrt_roi(
             if result is None:
                 skipped += 1
                 continue
-            all_preds.append(result["aggregated_pred"])
             all_logits.append(result["aggregated_logits"])
             all_labels.append(label)
 
         if not all_labels:
             print(f"    {disease}: no valid pairs (skipped {skipped})")
-            return None, np.array([]), np.array([]), np.array([])
+            return np.array([]), np.array([])
 
-        all_preds = np.array(all_preds)
         all_labels = np.array(all_labels)
         all_logits = np.array(all_logits)
 
-        direct_acc = (all_preds == all_labels).mean() * 100
-        print(f"    {disease}: direct_acc={direct_acc:.2f}% (n={len(all_labels)}, skipped={skipped})")
+        print(f"    {disease}: collected {len(all_labels)} pairs (skipped={skipped})")
 
-        return direct_acc, all_preds, all_logits, all_labels
+        return all_logits, all_labels
 
-    # Run evaluation with multi-seed SVM on aggregated logits
+    # Run evaluation with multi-seed SVM 10-fold CV on aggregated logits.
     random_seeds = svm_seeds or [50, 52, 100]
-    all_cv5 = []
     all_cv10 = []
-    direct_accs = {}
     print(f"  Seeds: {random_seeds}, shuffle_folds: {not no_shuffle_folds}")
 
     # Run ROI predictions once (seed-independent), then vary SVM seed
-    print("\n  Running ROI predictions for each disease...")
+    print("\n  Collecting ROI logits for each disease...")
     disease_data = {}
     for disease in DISEASES:
-        # Use full dataframe (no shuffle needed for direct prediction)
-        acc, preds, logits, labels = evaluate_disease_roi(disease, img_df, seed=42)
+        logits, labels = evaluate_disease_roi(disease, img_df)
         disease_data[disease] = {
-            "direct_acc": acc,
-            "direct_preds": preds,
             "logits": logits,
             "labels": labels,
         }
-        if acc is not None:
-            direct_accs[disease] = round(acc, 2)
-
-    if direct_accs:
-        direct_accs["avg"] = round(np.mean(list(direct_accs.values())), 2)
-
-    # Per-disease macro-F1 and confusion matrices on direct predictions.
-    from sklearn.metrics import f1_score as _f1_score, confusion_matrix as _confusion_matrix
-    direct_macro_f1 = {}
-    direct_confusion = {}
-    for disease in DISEASES:
-        data = disease_data[disease]
-        if data["direct_acc"] is None or len(data["labels"]) == 0:
-            continue
-        direct_macro_f1[disease] = round(
-            _f1_score(
-                data["labels"],
-                data["direct_preds"],
-                average="macro",
-                zero_division=0,
-            ) * 100,
-            2,
-        )
-        direct_confusion[disease] = _confusion_matrix(
-            data["labels"], data["direct_preds"], labels=[0, 1, 2]
-        ).tolist()
-    if direct_macro_f1:
-        direct_macro_f1["avg"] = round(float(np.mean(list(direct_macro_f1.values()))), 2)
-        print(f"\n  Direct macro-F1 per disease: {direct_macro_f1}")
-        print(f"  Direct confusion matrices (rows=true, cols=pred; labels=[improving, stable, worsening]):")
-        for d, cm_d in direct_confusion.items():
-            print(f"    {d}: {cm_d}")
 
     # SVM on aggregated logits
-    print("\n  Running SVM on aggregated logits...")
+    print("\n  Running SVM 10-fold CV on aggregated logits...")
     for seed in random_seeds:
         print(f"\n  Seed {seed}:")
-        for cv in [5, 10]:
-            results = []
-            for disease in DISEASES:
-                data = disease_data[disease]
-                if len(data["labels"]) < cv:
-                    results.append(0.0)
-                    continue
-                classifier = SVC(kernel="linear", random_state=seed)
-                if no_shuffle_folds:
-                    skf = StratifiedKFold(n_splits=cv, shuffle=False)
-                else:
-                    skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=seed)
-                scores = cross_val_score(classifier, data["logits"], data["labels"], cv=skf)
-                acc = round(scores.mean(), 4) * 100
-                results.append(acc)
-                print(f"    {disease} SVM cv={cv}: {acc:.2f}%")
-            avg = np.mean(results)
-            results.append(avg)
-            print(f"    CV-{cv} avg: {avg:.2f}%")
-            if cv == 5:
-                all_cv5.append(results)
+        results = []
+        cv = 10
+        for disease in DISEASES:
+            data = disease_data[disease]
+            if len(data["labels"]) < cv:
+                results.append(0.0)
+                continue
+            classifier = SVC(kernel="linear", random_state=seed)
+            if no_shuffle_folds:
+                skf = StratifiedKFold(n_splits=cv, shuffle=False)
             else:
-                all_cv10.append(results)
+                skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=seed)
+            scores = cross_val_score(classifier, data["logits"], data["labels"], cv=skf)
+            acc = round(scores.mean(), 4) * 100
+            results.append(acc)
+            print(f"    {disease} SVM 10-fold CV: {acc:.2f}%")
+        avg = np.mean(results)
+        results.append(avg)
+        print(f"    SVM 10-fold CV avg: {avg:.2f}%")
+        all_cv10.append(results)
 
     disease_keys = DISEASES + ["avg"]
+    avg_cv10 = np.mean(all_cv10, axis=0)
     result = {
-        "direct_accuracy": direct_accs,
-        "direct_macro_f1": direct_macro_f1,
-        "direct_confusion_matrix": direct_confusion,
+        "svm_10fold_cv_accuracy": {
+            k: round(float(v), 2) for k, v in zip(disease_keys, avg_cv10)
+        },
     }
 
-    if all_cv5:
-        avg_cv5 = np.mean(all_cv5, axis=0)
-        std_cv5 = np.std(all_cv5, axis=0)
-        avg_cv10 = np.mean(all_cv10, axis=0)
-        std_cv10 = np.std(all_cv10, axis=0)
-        result["cv5"] = {k: round(float(v), 2) for k, v in zip(disease_keys, avg_cv5)}
-        result["cv10"] = {k: round(float(v), 2) for k, v in zip(disease_keys, avg_cv10)}
-        result["cv5_std"] = {k: round(float(v), 2) for k, v in zip(disease_keys, std_cv5)}
-        result["cv10_std"] = {k: round(float(v), 2) for k, v in zip(disease_keys, std_cv10)}
-
-    print(f"\n  Direct accuracy: {direct_accs}")
-    if "cv5" in result:
-        print(f"  SVM CV-5:  {result['cv5']}")
-        print(f"  SVM CV-10: {result['cv10']}")
+    print(f"\n  SVM 10-fold CV accuracy: {result['svm_10fold_cv_accuracy']}")
 
     return result
 
@@ -1303,49 +1167,42 @@ def eval_mscxrt_ensemble(
 
     # Run SVM cross-validation
     random_seeds = svm_seeds or [50, 52, 100]
-    all_cv5 = []
     all_cv10 = []
-    print(f"\n  Running SVM on ensemble features...")
+    print(f"\n  Running SVM 10-fold CV on ensemble features...")
     print(f"  Seeds: {random_seeds}, shuffle_folds: {not no_shuffle_folds}")
 
     for seed in random_seeds:
         print(f"\n  Seed {seed}:")
-        for cv in [5, 10]:
-            results = []
-            for disease in DISEASES:
-                data = disease_data[disease]
-                if len(data["y"]) < cv:
-                    results.append(0.0)
-                    continue
-                classifier = SVC(kernel="linear", random_state=seed)
-                if no_shuffle_folds:
-                    skf = StratifiedKFold(n_splits=cv, shuffle=False)
-                else:
-                    skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=seed)
-                scores = cross_val_score(classifier, data["X"], data["y"], cv=skf)
-                acc = round(scores.mean(), 4) * 100
-                results.append(acc)
-                print(f"    {disease} SVM cv={cv}: {acc:.2f}%")
-            avg = np.mean(results)
-            results.append(avg)
-            print(f"    CV-{cv} avg: {avg:.2f}%")
-            if cv == 5:
-                all_cv5.append(results)
+        cv = 10
+        results = []
+        for disease in DISEASES:
+            data = disease_data[disease]
+            if len(data["y"]) < cv:
+                results.append(0.0)
+                continue
+            classifier = SVC(kernel="linear", random_state=seed)
+            if no_shuffle_folds:
+                skf = StratifiedKFold(n_splits=cv, shuffle=False)
             else:
-                all_cv10.append(results)
+                skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=seed)
+            scores = cross_val_score(classifier, data["X"], data["y"], cv=skf)
+            acc = round(scores.mean(), 4) * 100
+            results.append(acc)
+            print(f"    {disease} SVM 10-fold CV: {acc:.2f}%")
+        avg = np.mean(results)
+        results.append(avg)
+        print(f"    SVM 10-fold CV avg: {avg:.2f}%")
+        all_cv10.append(results)
 
     disease_keys = DISEASES + ["avg"]
-    result = {}
+    avg_cv10 = np.mean(all_cv10, axis=0)
+    result = {
+        "svm_10fold_cv_accuracy": {
+            k: round(float(v), 2) for k, v in zip(disease_keys, avg_cv10)
+        },
+    }
 
-    if all_cv5:
-        avg_cv5 = np.mean(all_cv5, axis=0)
-        avg_cv10 = np.mean(all_cv10, axis=0)
-        result["cv5"] = {k: round(float(v), 2) for k, v in zip(disease_keys, avg_cv5)}
-        result["cv10"] = {k: round(float(v), 2) for k, v in zip(disease_keys, avg_cv10)}
-
-    if "cv5" in result:
-        print(f"\n  Ensemble SVM CV-5:  {result['cv5']}")
-        print(f"  Ensemble SVM CV-10: {result['cv10']}")
+    print(f"\n  Ensemble SVM 10-fold CV accuracy: {result['svm_10fold_cv_accuracy']}")
 
     return result
 
@@ -1671,33 +1528,24 @@ def eval_gold_temporal(
             }
 
         # Use GroupKFold to prevent same image pair leaking across train/test
-        cv5_splits = min(5, n_group_pairs)
         cv10_splits = min(10, n_group_pairs)
-        gkf5 = GroupKFold(n_splits=cv5_splits)
         gkf10 = GroupKFold(n_splits=cv10_splits)
 
-        all_cv5, all_cv10 = [], []
+        all_cv10 = []
         for seed in svm_seeds:
-            clf5 = SVC(kernel="linear", random_state=seed)
-            scores5 = cross_val_score(clf5, X, y, cv=gkf5, groups=groups)
             clf10 = SVC(kernel="linear", random_state=seed)
             scores10 = cross_val_score(clf10, X, y, cv=gkf10, groups=groups)
-            all_cv5.append(scores5.mean() * 100)
             all_cv10.append(scores10.mean() * 100)
-            print(f"    Seed {seed}: CV-5={scores5.mean()*100:.2f}%  CV-10={scores10.mean()*100:.2f}%")
+            print(f"    Seed {seed}: SVM 10-fold CV={scores10.mean()*100:.2f}%")
 
         svm_result = {
             "method": "svm_roi_group_cv",
             "feature_dim": int(X.shape[1]),
-            "cv5_splits": int(cv5_splits),
             "cv10_splits": int(cv10_splits),
-            "cv5_mean": round(float(np.mean(all_cv5)), 2),
-            "cv5_std": round(float(np.std(all_cv5)), 2),
             "cv10_mean": round(float(np.mean(all_cv10)), 2),
             "cv10_std": round(float(np.std(all_cv10)), 2),
         }
-        print(f"\n  SVM GroupCV-5:  {svm_result['cv5_mean']:.2f} +/- {svm_result['cv5_std']:.2f}%")
-        print(f"  SVM GroupCV-10: {svm_result['cv10_mean']:.2f} +/- {svm_result['cv10_std']:.2f}%")
+        print(f"\n  SVM Group 10-fold CV: {svm_result['cv10_mean']:.2f} +/- {svm_result['cv10_std']:.2f}%")
 
         # Use SVM out-of-fold predictions for downstream metrics
         clf_oof = SVC(kernel="linear", random_state=42)
@@ -1721,31 +1569,23 @@ def eval_gold_temporal(
         print(f"\n  Logits-SVM feature matrix: {X_logits.shape}, unique groups: {n_group_pairs_l}")
 
         if n_group_pairs_l >= 5:
-            cv5_sp = min(5, n_group_pairs_l)
             cv10_sp = min(10, n_group_pairs_l)
-            gkf5_l = _GKF(n_splits=cv5_sp)
             gkf10_l = _GKF(n_splits=cv10_sp)
 
-            lcv5, lcv10 = [], []
+            lcv10 = []
             for seed in svm_seeds:
-                clf5 = _SVC(kernel="linear", random_state=seed)
-                s5 = _cv_score(clf5, X_logits, y_logits, cv=gkf5_l, groups=groups_logits)
                 clf10 = _SVC(kernel="linear", random_state=seed)
                 s10 = _cv_score(clf10, X_logits, y_logits, cv=gkf10_l, groups=groups_logits)
-                lcv5.append(s5.mean() * 100)
                 lcv10.append(s10.mean() * 100)
-                print(f"    Logits-SVM seed {seed}: CV-5={s5.mean()*100:.2f}%  CV-10={s10.mean()*100:.2f}%")
+                print(f"    Logits-SVM seed {seed}: SVM 10-fold CV={s10.mean()*100:.2f}%")
 
             logits_svm_result = {
                 "method": "logits_svm_group_cv",
                 "feature_dim": int(X_logits.shape[1]),
-                "cv5_mean": round(float(np.mean(lcv5)), 2),
-                "cv5_std": round(float(np.std(lcv5)), 2),
                 "cv10_mean": round(float(np.mean(lcv10)), 2),
                 "cv10_std": round(float(np.std(lcv10)), 2),
             }
-            print(f"\n  Logits-SVM GroupCV-5:  {logits_svm_result['cv5_mean']:.2f} +/- {logits_svm_result['cv5_std']:.2f}%")
-            print(f"  Logits-SVM GroupCV-10: {logits_svm_result['cv10_mean']:.2f} +/- {logits_svm_result['cv10_std']:.2f}%")
+            print(f"\n  Logits-SVM Group 10-fold CV: {logits_svm_result['cv10_mean']:.2f} +/- {logits_svm_result['cv10_std']:.2f}%")
         else:
             print(f"  WARNING: Too few groups ({n_group_pairs_l}) for logits-SVM GroupKFold, skipping.")
 
@@ -2126,26 +1966,16 @@ def main():
         print(f"  ImaGenome: acc={ig['test_acc']}, f1_macro={ig['test_f1_macro']}")
     if "mscxrt_svm" in report and report["mscxrt_svm"]:
         svm = report["mscxrt_svm"]
-        print(f"  MS-CXR-T SVM CV-5:  {svm.get('cv5', {})}")
-        print(f"  MS-CXR-T SVM CV-10: {svm.get('cv10', {})}")
+        print(f"  MS-CXR-T SVM 10-fold CV: {svm.get('svm_10fold_cv_accuracy', {})}")
     if "mscxrt_direct" in report and report["mscxrt_direct"]:
         dc = report["mscxrt_direct"]
-        print(f"  MS-CXR-T Direct: {dc.get('direct_accuracy', {})}")
-        if "cv5" in dc:
-            print(f"  MS-CXR-T Direct SVM CV-5:  {dc['cv5']}")
-        if "cv10" in dc:
-            print(f"  MS-CXR-T Direct SVM CV-10: {dc['cv10']}")
+        print(f"  MS-CXR-T Image-level SVM 10-fold CV: {dc.get('svm_10fold_cv_accuracy', {})}")
     if "mscxrt_roi" in report and report["mscxrt_roi"]:
         roi = report["mscxrt_roi"]
-        print(f"  MS-CXR-T ROI direct: {roi.get('direct_accuracy', {})}")
-        if "cv5" in roi:
-            print(f"  MS-CXR-T ROI SVM CV-5:  {roi['cv5']}")
+        print(f"  MS-CXR-T ROI SVM 10-fold CV: {roi.get('svm_10fold_cv_accuracy', {})}")
     if "mscxrt_ensemble" in report and report["mscxrt_ensemble"]:
         ens = report["mscxrt_ensemble"]
-        if "cv5" in ens:
-            print(f"  MS-CXR-T Ensemble CV-5:  {ens['cv5']}")
-        if "cv10" in ens:
-            print(f"  MS-CXR-T Ensemble CV-10: {ens['cv10']}")
+        print(f"  MS-CXR-T Ensemble SVM 10-fold CV: {ens.get('svm_10fold_cv_accuracy', {})}")
     if "gold_temporal" in report and report["gold_temporal"]:
         gold = report["gold_temporal"]
         if "overall_accuracy" in gold and "macro_f1" in gold:

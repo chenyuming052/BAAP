@@ -206,21 +206,17 @@ def image_classify(path, random_seed):
     pneumonia["label"] = pneumonia["pneumonia_progression"].apply(classify_value)
     pneumothorax["label"] = pneumothorax["pneumothorax_progression"].apply(classify_value)
     print(path, random_seed)
-    cv5 = []
-    cv10 = []
-    for cv in [5, 10]:
-        print(cv)
-        avg=[]
-        avg.append(disease_proc("consolidation", consolidation, cv, random_seed))
-        avg.append(disease_proc("edema", edema, cv, random_seed))
-        avg.append(disease_proc("pleural_effusion", pleural_effusion, cv, random_seed))
-        avg.append(disease_proc("pneumonia", pneumonia, cv, random_seed))
-        avg.append(disease_proc("pneumothorax", pneumothorax, cv, random_seed))
-        print("avg_acc:%.2f"%(np.mean(avg)))
-        avg.append(np.mean(avg))
-        if cv == 5: cv5 = avg
-        if cv == 10: cv10 = avg
-    return cv5, cv10
+    cv = 10
+    print(cv)
+    avg = []
+    avg.append(disease_proc("consolidation", consolidation, cv, random_seed))
+    avg.append(disease_proc("edema", edema, cv, random_seed))
+    avg.append(disease_proc("pleural_effusion", pleural_effusion, cv, random_seed))
+    avg.append(disease_proc("pneumonia", pneumonia, cv, random_seed))
+    avg.append(disease_proc("pneumothorax", pneumothorax, cv, random_seed))
+    print("svm_10fold_cv_accuracy:%.2f" % (np.mean(avg)))
+    avg.append(np.mean(avg))
+    return avg
 
 
 
@@ -294,24 +290,17 @@ if __name__ == "__main__":
     path = os.environ.get("BAAP_CKPT")
     if path is None:
         raise RuntimeError("Set BAAP_CKPT=/path/to/checkpoint.ckpt before running temporal_test.py")
-    cv5 = []
     cv10 = []
     random_seeds = [42, 100, 666]
     for r in random_seeds:
         res = image_classify(path, r)
-        cv5.append(res[0])
-        cv10.append(res[1])
-    avg_cv5 = []
+        cv10.append(res)
     avg_cv10 = []
-    std_cv5 = []
     std_cv10 = []
 
     print(path)
     print(random)
-    print("avg_cv5", np.mean(cv5, axis=0))
-    print("std_cv5", np.std(cv5, axis=0))
-    print("avg_cv10", np.mean(cv10, axis=0))
-    print("std_cv10", np.std(cv10,axis=0))
+    print("svm_10fold_cv_accuracy", np.mean(cv10, axis=0))
 
     # temporal sentence similarity
     # text_sim(path, 42)

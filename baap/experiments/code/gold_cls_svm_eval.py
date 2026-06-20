@@ -164,28 +164,24 @@ def main():
     y = np.array(labels)
     print(f"  Feature matrix: {X.shape}")
 
-    # SVM with CV-5 and CV-10
+    # SVM with 10-fold CV
     # Shuffle data with different seeds (same as temporal_test.py) to get variance
     print("\n" + "=" * 60)
     print("  SVM (CLS embedding, no ROI)")
     print("=" * 60)
 
-    all_cv5, all_cv10 = [], []
+    all_cv10 = []
     for seed in args.svm_seeds:
         rng = np.random.RandomState(seed)
         perm = rng.permutation(len(y))
         X_shuf = X[perm]
         y_shuf = y[perm]
-        clf5 = SVC(kernel="linear", random_state=seed)
-        scores5 = cross_val_score(clf5, X_shuf, y_shuf, cv=5)
         clf10 = SVC(kernel="linear", random_state=seed)
         scores10 = cross_val_score(clf10, X_shuf, y_shuf, cv=10)
-        all_cv5.append(scores5.mean() * 100)
         all_cv10.append(scores10.mean() * 100)
-        print(f"  Seed {seed}: CV-5={scores5.mean()*100:.2f}%  CV-10={scores10.mean()*100:.2f}%")
+        print(f"  Seed {seed}: SVM 10-fold CV={scores10.mean()*100:.2f}%")
 
-    print(f"\n  CV-5  mean: {np.mean(all_cv5):.2f} +/- {np.std(all_cv5):.2f}%")
-    print(f"  CV-10 mean: {np.mean(all_cv10):.2f} +/- {np.std(all_cv10):.2f}%")
+    print(f"\n  SVM 10-fold CV mean: {np.mean(all_cv10):.2f} +/- {np.std(all_cv10):.2f}%")
 
     # Out-of-fold predictions for confusion matrix
     clf_oof = SVC(kernel="linear", random_state=42)
@@ -213,8 +209,6 @@ def main():
         "feature_dim": int(X.shape[1]),
         "n_pairs": int(X.shape[0]),
         "skipped_pairs": skipped,
-        "cv5_mean": round(float(np.mean(all_cv5)), 2),
-        "cv5_std": round(float(np.std(all_cv5)), 2),
         "cv10_mean": round(float(np.mean(all_cv10)), 2),
         "cv10_std": round(float(np.std(all_cv10)), 2),
         "oof_accuracy": round(100 * acc, 2),
