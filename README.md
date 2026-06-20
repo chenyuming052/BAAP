@@ -19,6 +19,7 @@ Public release scope:
 - MS-CXR-T ROI evaluation and SVM CV-10 evaluation
 - Chest ImaGenome temporal data utilities
 - downstream dataset preprocessing utilities
+- BAAP v1 checkpoint download helper
 
 Not included:
 
@@ -27,6 +28,39 @@ Not included:
 - generated results and checkpoints
 - draft documents
 - large datasets
+
+## Model Checkpoint
+
+The BAAP v1 paper-best checkpoint is distributed through GitHub Releases, not
+stored in the Git repository.
+
+Release tag:
+
+```text
+baap-v1.0
+```
+
+Release assets are intentionally minimal:
+
+```text
+baap-v1-paperbest.ckpt
+SHA256SUMS
+```
+
+Direct checkpoint URL:
+
+```text
+https://github.com/chenyuming052/BAAP/releases/download/baap-v1.0/baap-v1-paperbest.ckpt
+```
+
+Download with checksum verification:
+
+```bash
+bash scripts/download_baap_v1.sh
+```
+
+See `MODEL_CARD.md` and `MODEL_LICENSE` for intended use and model weight
+terms.
 
 ## Installation
 
@@ -194,4 +228,4 @@ repository.
 
 ## License
 
-License pending. Add a license file before formal distribution or announcement.
+Code license pending. BAAP v1 model weights are released under `MODEL_LICENSE`.
